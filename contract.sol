@@ -5,7 +5,7 @@ contract Voting {
     // admin that will be only able to add candidates
     address public admin; 
     
-    // add Voter
+    // Voter
     struct Voter {
         bool isRegistered;
         bool hasVoted;
@@ -14,8 +14,14 @@ contract Voting {
     // voters
     mapping(address => Voter) public voters;
 
+    // candidate
+    struct Candidate {
+      string name;
+      uint256 votes;
+      bytes32 hash;
+    }
     // list of candidates
-    bytes32[] public candidateList;
+    Candidate[] public candidateList;
     
     // to see address of the winner
     address public winner;
@@ -50,15 +56,27 @@ contract Voting {
       admin = msg.sender;
     }
 
+    // Helper function to convert string to bytes32
+    function stringToBytes32(string memory source) internal pure returns (bytes32 result) {
+        bytes memory tempEmptyStringTest = bytes(source);
+        if (tempEmptyStringTest.length == 0) {
+            return 0x0;
+        }
+        assembly {
+            result := mload(add(source, 32))
+        }
+    }
+
     // CANDIDATES
     // Add a candidate -- only admin can add a candidate
-    function addCandidate(bytes32 _candidate) external onlyAdmin {
-        require(_candidate != bytes32(0), "Candidate name cannot be empty");
-        candidateList.push(_candidate);
+    function addCandidate(string memory _name) external onlyAdmin {
+        require(bytes(_name).length > 0, "Candidate name cannot be empty");
+        bytes32 hash = keccak256(bytes(_name));
+        candidateList.push(Candidate(_name, 0, hash));
     }
 
     // return a list of all candidates
-    function getCandidateList() external view returns (bytes32[] memory) {
+    function getCandidateList() external view returns (Candidate[] memory) {
         return candidateList;
     }
 
