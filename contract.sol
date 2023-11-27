@@ -4,12 +4,19 @@ pragma solidity >=0.6.12 <0.9.0;
 contract Voting {
     // admin that will be only able to add candidates
     address public admin; 
+    
+    // add Voter
+    struct Voter {
+        bool isRegistered;
+        bool hasVoted;
+        string details; // Additional details about the voter
+    }
     // voters
-    mapping(address => bool) public voters;
+    mapping(address => Voter) public voters;
 
     // list of candidates
-    address[] public candidates;
-  
+    bytes32[] public candidateList;
+    
     // to see address of the winner
     address public winner;
 
@@ -19,21 +26,29 @@ contract Voting {
     // number of winner votes 
     uint public winnerVotes;
   
+    // Modifiers
+    // modifier so only admin can call this function
+    modifier onlyAdmin{
+        require(msg.sender == admin, "Only admin can call this function");
+        _;
+    }
+    // modifier so only voters can call this function
+    modifier onlyVoter() {
+        require(voters[msg.sender].isRegistered, "Only registered voters can call this function");
+        _;
+    }
+
+    // modifier for voters that has not voted
+     modifier hasNotVoted() {
+        require(!voters[msg.sender].hasVoted, "Voter has already voted");
+        _;
+    }
+
+    // Constructor
     constructor () {
       // store admin address at the time of deployment
       admin = msg.sender;
     }
 
-    // added modifier so only admin can call this function
-    modifier onlyAdmin{
-        require(msg.sender == admin, "Only admin can call this function");
-        _;
-    }
-
-    // added modifier so only registered voter can call this function
-    modifier onlyRegistredVoter{
-        require(voters[msg.sender], "Only registered voters can call this function");
-        _;
-    }
 
 }
