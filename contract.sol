@@ -50,5 +50,16 @@ contract Voting {
       admin = msg.sender;
     }
 
+    // CANDIDATES
+    // Add a candidate -- only admin can add a candidate
+    function addCandidate(bytes32 _candidate) external onlyAdmin {
+        require(_candidate != bytes32(0), "Candidate name cannot be empty");
+        candidateList.push(_candidate);
+    }
+
+    // return a list of all candidates
+    function getCandidateList() external view returns (bytes32[] memory) {
+        return candidateList;
+    }
 
 }
