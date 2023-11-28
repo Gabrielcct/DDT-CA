@@ -11,6 +11,8 @@ contract Voting {
         bool hasVoted;
         string details; // Additional details about the voter
     }
+    // List of voters
+    Voter[] public votersList;
     // voters
     mapping(address => Voter) public voters;
 
@@ -71,6 +73,11 @@ contract Voting {
     // Check did voter voted (based on hasVoted property)
     function hasVoterVoted(address _voter) external view returns (bool) {
         return voters[_voter].hasVoted;
+    }
+
+     // Get all registred voters
+    function getVotersList() external view returns(Voter[] memory){
+         return votersList;
     }
     
     // CANDIDATES
