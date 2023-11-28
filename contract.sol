@@ -55,18 +55,24 @@ contract Voting {
       // store admin address at the time of deployment
       admin = msg.sender;
     }
-
-    // Helper function to convert string to bytes32
-    function stringToBytes32(string memory source) internal pure returns (bytes32 result) {
-        bytes memory tempEmptyStringTest = bytes(source);
-        if (tempEmptyStringTest.length == 0) {
-            return 0x0;
-        }
-        assembly {
-            result := mload(add(source, 32))
-        }
+    // VOTERS
+    // Register voter -- only admin can register voter
+    function registerVoter(address _voter, string memory _details) external onlyAdmin {
+        require(_voter != address(0), "Invalid voter address");
+        voters[_voter] = Voter(true, false, _details, bytes32(0));
     }
 
+    // Get voter details, is he registered and his details  
+    function getVoterDetails(address _voter) external view returns (string memory) {
+        require(voters[_voter].isRegistered, "Voter not registered");
+        return voters[_voter].details;
+    }
+
+    // Check did voter voted (based on hasVoted property)
+    function hasVoterVoted(address _voter) external view returns (bool) {
+        return voters[_voter].hasVoted;
+    }
+    
     // CANDIDATES
     // Add a candidate -- only admin can add a candidate
     function addCandidate(string memory _name) external onlyAdmin {
@@ -79,5 +85,6 @@ contract Voting {
     function getCandidateList() external view returns (Candidate[] memory) {
         return candidateList;
     }
+    
 
 }
