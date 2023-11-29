@@ -92,6 +92,80 @@ contract Voting {
     function getCandidateList() external view returns (Candidate[] memory) {
         return candidateList;
     }
+    // New function to get the list of candidates
+    function getCandidates() external view returns (string[] memory) {
+        string[] memory candidateNames = new string[](candidateList.length);
+        for (uint256 i = 0; i < candidateList.length; i++) {
+            candidateNames[i] = candidateList[i].name;
+        }
+        return candidateNames;
+    }
+    // VOTE
+    
+    // Cast a vote. 
+    // Rules:
+    //  - Only voter that didn't vote can vote
+    //  - We can vote only for valid candidate
+    // After successful voting Add those votes to received votes and set voter status to has voted
+    function vote(bytes32 _candidateHash) external onlyVoter hasNotVoted {
+        require(candidateExists(_candidateHash), "Invalid candidate");
+          
+        votesReceived++;
+        updateCandidateVotes(_candidateHash);
+        voters[msg.sender].hasVoted = true;
+        
+    }  
+
+    // check if is valid candidate for voting by checking a candidate list
+    function candidateExists(bytes32 _candidateHash) internal view returns (bool) {
+        for (uint256 i = 0; i < candidateList.length; i++) {
+            if (candidateList[i].hash == _candidateHash) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // get vote count for candidate
+    function getVoteCountForCandidate(bytes32 _candidateHash) external view returns (uint256) {
+        require(candidateExists(_candidateHash), "Invalid candidate");
+        for (uint256 i = 0; i < candidateList.length; i++) {
+            if (candidateList[i].hash == _candidateHash) {
+                return candidateList[i].votes;
+            }
+        }
+        return 0;
+    }
+
+    function updateCandidateVotes(bytes32 _candidateHash) internal {
+        for (uint256 i = 0; i < candidateList.length; i++) {
+            if (candidateList[i].hash == _candidateHash) {
+                candidateList[i].votes++;
+                break;
+            }
+        }
+    }
+
+    function getAllRecievedVotes() external view returns(uint256){
+        return votesReceived;
+    }
+
+    // WINNER
+    // return as winner candidate with most votes
+    function getWinner() external view returns (Candidate memory winner) {
+        require(candidateList.length > 0, "No candidates available");
+
+        winner = candidateList[0]; // Initialize with the first candidate
+        uint256 maxVotes = winner.votes;
+
+        for (uint256 i = 1; i < candidateList.length; i++) {
+            if (candidateList[i].votes > maxVotes) {
+                winner = candidateList[i];
+                maxVotes = winner.votes;
+            }
+        }
+    }
+
     
 
 }
