@@ -8,7 +8,6 @@ contract Voting {
         bool isRegistered; // is Registered for voting
         bool hasVoted; // did voter already voted
         address voterAddress; // address of the voter
-        address candidateAddress; // index of candidate voted for
     }
 
     // Candidate
@@ -59,7 +58,7 @@ contract Voting {
     function registerVoter(string memory _name, address _address) external onlyAdmin {
         require(_address != address(0), "Invalid voter address");
         require(!voters[_address].isRegistered, "Voter is already registred");
-        voters[_address] = Voter(_name, true, false, _address, -1);
+        voters[_address] = Voter(_name, true, false, _address);
         votersList.push(voters[_address]);
     }
 
@@ -100,7 +99,6 @@ contract Voting {
         allVotesReceived++;
         updateCandidateVotes(_candidateAddress); // update votes for candidate
         voters[msg.sender].hasVoted = true; // set voter hasVoted attribute to true
-        voters[msg.sender].candidateAddress = _candidateAddress; // save candidate address to voter
     }  
 
     // check if is valid candidate for voting by checking a candidate list
