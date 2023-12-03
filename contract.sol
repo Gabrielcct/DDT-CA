@@ -2,38 +2,34 @@
 pragma solidity >=0.6.12 <0.9.0;
 
 contract Voting {
-    // admin that will be only able to add candidates
-    address public admin; 
-    
     // Voter
     struct Voter {
-        bool isRegistered;
-        bool hasVoted;
-        string details; // Additional details about the voter
+        string name; // Voter name
+        bool isRegistered; // is Registered for voting
+        bool hasVoted; // did voter already voted
+        address voterAddress; // address of the voter
+        int vote; // index of vote
     }
-    // List of voters
-    Voter[] public votersList;
-    // voters
-    mapping(address => Voter) public voters;
 
-    // candidate
+    // Candidate
     struct Candidate {
       string name;
-      uint256 votes;
-      bytes32 hash;
+      uint256 voteCount;
+      address candidateAddress;
     }
+    // admin that will be only able to add candidates
+    address public admin; // will use to on modifier 
+    // This declares a state variable that
+    // stores a `Voter` struct for each possible address.
+    mapping(address => Voter) public voters; // will use on modifier
+    
+    // List of voters
+    Voter[] public votersList;
     // list of candidates
     Candidate[] public candidateList;
+     // number of all votes
+    uint256 allVotesReceived;
     
-    // to see address of the winner
-    address public winner;
-
-    // voting
-    // number of all votes
-    mapping (address=> uint256) public allVotesReceived;
-    // number of winner votes 
-    uint public winnerVotes;
-  
     // Modifiers
     // modifier so only admin can call this function
     modifier onlyAdmin{
@@ -57,69 +53,59 @@ contract Voting {
       // store admin address at the time of deployment
       admin = msg.sender;
     }
+
     // VOTERS
     // Register voter -- only admin can register voter
-    function registerVoter(address _voter, string memory _details) external onlyAdmin {
-        require(_voter != address(0), "Invalid voter address");
-        voters[_voter] = Voter(true, false, _details, bytes32(0));
+    function registerVoter(string memory _name, address _address) external onlyAdmin {
+        require(_address != address(0), "Invalid voter address");
+        require(!voters[_address].isRegistered, "Voter is already registred");
+        voters[_address] = Voter(_name, true, false, _address, -1);
+        votersList.push(voters[_address]);
     }
 
     // Get voter details, is he registered and his details  
-    function getVoterDetails(address _voter) external view returns (string memory) {
-        require(voters[_voter].isRegistered, "Voter not registered");
-        return voters[_voter].details;
+    function getVoterName(address _address) external view returns (string memory) {
+        require(voters[_address].isRegistered, "Voter not registered");
+        return voters[_address].name;
     }
 
-    // Check did voter voted (based on hasVoted property)
-    function hasVoterVoted(address _voter) external view returns (bool) {
-        return voters[_voter].hasVoted;
-    }
-
-     // Get all registred voters
+    // Get all registred voters
     function getVotersList() external view returns(Voter[] memory){
          return votersList;
     }
     
     // CANDIDATES
     // Add a candidate -- only admin can add a candidate
-    function addCandidate(string memory _name) external onlyAdmin {
+    function addCandidate(string memory _name, address _address) external onlyAdmin {
         require(bytes(_name).length > 0, "Candidate name cannot be empty");
-        bytes32 hash = keccak256(bytes(_name));
-        candidateList.push(Candidate(_name, 0, hash));
+        require(_address != address(0), "Invalid candidate address");
+        require(!candidateExists(_address), "Candidate already exists");
+        candidateList.push(Candidate(_name, 0, _address));
     }
-
+    
     // return a list of all candidates
     function getCandidateList() external view returns (Candidate[] memory) {
         return candidateList;
     }
-    // New function to get the list of candidates
-    function getCandidates() external view returns (string[] memory) {
-        string[] memory candidateNames = new string[](candidateList.length);
-        for (uint256 i = 0; i < candidateList.length; i++) {
-            candidateNames[i] = candidateList[i].name;
-        }
-        return candidateNames;
-    }
+
     // VOTE
-    
     // Cast a vote. 
     // Rules:
     //  - Only voter that didn't vote can vote
     //  - We can vote only for valid candidate
     // After successful voting Add those votes to received votes and set voter status to has voted
-    function vote(bytes32 _candidateHash) external onlyVoter hasNotVoted {
-        require(candidateExists(_candidateHash), "Invalid candidate");
-          
-        votesReceived++;
-        updateCandidateVotes(_candidateHash);
-        voters[msg.sender].hasVoted = true;
-        
+    function vote(address _candidateAddress) external onlyVoter hasNotVoted {
+        require(candidateExists(_candidateAddress), "Invalid candidate");
+        // increase number of votes
+        allVotesReceived++;
+        updateCandidateVotes(_candidateAddress); // update votes for candidate
+        voters[msg.sender].hasVoted = true; // set voter hasVoted attribute to true
     }  
 
     // check if is valid candidate for voting by checking a candidate list
-    function candidateExists(bytes32 _candidateHash) internal view returns (bool) {
+    function candidateExists(address _candidateAddress) internal view returns (bool) {
         for (uint256 i = 0; i < candidateList.length; i++) {
-            if (candidateList[i].hash == _candidateHash) {
+            if (candidateList[i].candidateAddress == _candidateAddress) {
                 return true;
             }
         }
@@ -127,27 +113,28 @@ contract Voting {
     }
 
     // get vote count for candidate
-    function getVoteCountForCandidate(bytes32 _candidateHash) external view returns (uint256) {
-        require(candidateExists(_candidateHash), "Invalid candidate");
+    function getVoteCountForCandidate(address _candidateAddress) external view returns (uint256) {
+        require(candidateExists(_candidateAddress), "Invalid candidate");
         for (uint256 i = 0; i < candidateList.length; i++) {
-            if (candidateList[i].hash == _candidateHash) {
-                return candidateList[i].votes;
+            if (candidateList[i].candidateAddress == _candidateAddress) {
+                return candidateList[i].voteCount;
             }
         }
         return 0;
     }
-
-    function updateCandidateVotes(bytes32 _candidateHash) internal {
+    // helper function to update candidate votes
+    function updateCandidateVotes(address _candidateAddress) internal {
         for (uint256 i = 0; i < candidateList.length; i++) {
-            if (candidateList[i].hash == _candidateHash) {
-                candidateList[i].votes++;
+            if (candidateList[i].candidateAddress == _candidateAddress) {
+                candidateList[i].voteCount++;
                 break;
             }
         }
     }
 
+    // how many people voted
     function getAllRecievedVotes() external view returns(uint256){
-        return votesReceived;
+        return allVotesReceived;
     }
 
     // WINNER
@@ -156,12 +143,12 @@ contract Voting {
         require(candidateList.length > 0, "No candidates available");
 
         winner = candidateList[0]; // Initialize with the first candidate
-        uint256 maxVotes = winner.votes;
+        uint256 maxVotes = winner.voteCount;
 
         for (uint256 i = 1; i < candidateList.length; i++) {
-            if (candidateList[i].votes > maxVotes) {
+            if (candidateList[i].voteCount > maxVotes) {
                 winner = candidateList[i];
-                maxVotes = winner.votes;
+                maxVotes = winner.voteCount;
             }
         }
     }
